@@ -4,31 +4,27 @@ scriptings:
       script_url: "https://raw.githubusercontent.com/FelixPang/Egern/main/scripts/WorldCup_Widget.js"
       timeout: 20
       env:
-        DATA_SOURCE: "football-data"
-        COMPETITION_CODE: "WC"
-        API_KEY: "你的 football-data.org token"
+        DATA_SOURCE: "espn"
+        ESPN_LEAGUE: "fifa.world"
         TIMEOUT: "10000"
 
 widgets:
   - name: "世界杯赛程"
     script_name: "world-cup-widget"
     env:
-      # football-data.org FIFA World Cup 赛程 / 比分来源。
-      # COMPETITION_CODE: "WC" 对应 FIFA World Cup。
-      # 脚本会按北京时间展示昨天、今天、明天，并自动多取一天 UTC 数据避免凌晨场次遗漏。
-      DATA_SOURCE: "football-data"
-      COMPETITION_CODE: "WC"
-      API_KEY: "你的 football-data.org token"
+      # ESPN FIFA World Cup 赛程 / 比分来源，无需 API Key。
+      # 脚本会按北京时间展示昨天、今天、明天。
+      DATA_SOURCE: "espn"
+      ESPN_LEAGUE: "fifa.world"
 
       # 如果不使用 API_URL，也可以直接放 JSON 字符串。
       # 示例：
       # MATCHES_JSON: '{"matches":[{"kickoff":"2026-06-14T19:00:00+08:00","home":"A 队","away":"B 队","status":"scheduled"},{"kickoff":"2026-06-14T22:00:00+08:00","home":"C 队","away":"D 队","status":"live","homeScore":0,"awayScore":0,"minute":63},{"kickoff":"2026-06-13T22:00:00+08:00","home":"E 队","away":"F 队","status":"finished","homeScore":2,"awayScore":1}]}'
 
-      # 如果你想显式指定接口，也可以打开下面几行：
+      # football-data.org 备选：
+      # DATA_SOURCE: "football-data"
+      # COMPETITION_CODE: "WC"
       # API_URL: "https://api.football-data.org/v4/competitions/WC/matches"
+      # API_KEY: "你的 football-data.org token"
       # API_KEY_HEADER: "X-Auth-Token"
       # API_KEY_PREFIX: ""
-
-      # ESPN 备选：
-      # DATA_SOURCE: "espn"
-      # ESPN_LEAGUE: "fifa.world"

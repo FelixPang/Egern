@@ -183,10 +183,12 @@ function isFootballDataSource(env) {
 function buildApiUrl(env, now) {
   const from = addDays(now, -1);
   const to = addDays(now, 1);
+  const espnFrom = addDays(now, -2);
   const footballDataFrom = addDays(now, -2);
   const competitionCode = encodeURIComponent(String(env.COMPETITION_CODE || 'WC').trim() || 'WC');
   const values = {
     dates: compactDay(from) + '-' + compactDay(to),
+    espnDates: compactDay(espnFrom) + '-' + compactDay(to),
     dateFrom: dayKey(from),
     dateTo: dayKey(to),
     footballDataDateFrom: dayKey(footballDataFrom),
@@ -199,7 +201,7 @@ function buildApiUrl(env, now) {
 
   if (isEspnSource(env) && !env.API_URL) {
     const league = env.ESPN_LEAGUE || 'fifa.world';
-    return 'https://site.api.espn.com/apis/site/v2/sports/soccer/' + league + '/scoreboard?limit=500&dates=' + values.dates;
+    return 'https://site.api.espn.com/apis/site/v2/sports/soccer/' + league + '/scoreboard?limit=500&dates=' + values.espnDates;
   }
 
   if (isFootballDataSource(env) && !env.API_URL) {
@@ -209,7 +211,7 @@ function buildApiUrl(env, now) {
   if (isEspnSource(env) && env.API_URL.indexOf('dates=') < 0) {
     return appendQuery(env.API_URL, {
       limit: env.LIMIT || '500',
-      dates: values.dates,
+      dates: values.espnDates,
     });
   }
 
@@ -224,7 +226,7 @@ function buildApiUrl(env, now) {
 }
 
 function fillTemplate(template, values) {
-  return template.replace(/\{(dates|dateFrom|dateTo|footballDataDateFrom|footballDataDateTo|yyyymmddFrom|yyyymmddTo)\}/g, function(_, key) {
+  return template.replace(/\{(dates|espnDates|dateFrom|dateTo|footballDataDateFrom|footballDataDateTo|yyyymmddFrom|yyyymmddTo)\}/g, function(_, key) {
     return values[key];
   });
 }
@@ -310,17 +312,17 @@ function normalizeOne(item, now) {
   ]));
 
   const statusValue = pick(item, [
-    'status',
-    'state',
-    'matchStatus',
     'status.type.state',
     'status.type.name',
-    'fixture.status.short',
-    'fixture.status.long',
-    'status.description',
     'status.type.description',
     'status.type.detail',
     'status.type.shortDetail',
+    'status.description',
+    'state',
+    'matchStatus',
+    'status',
+    'fixture.status.short',
+    'fixture.status.long',
   ]);
   const minute = pick(item, [
     'minute',
@@ -580,13 +582,13 @@ function header(title, now) {
         type: 'image',
         src: 'sf-symbol:trophy.fill',
         color: COLORS.trophy,
-        width: 17,
-        height: 17,
+        width: 14,
+        height: 14,
       },
       {
         type: 'text',
         text: title,
-        font: { size: 'headline', weight: 'bold' },
+        font: { size: 'subheadline', weight: 'bold' },
         textColor: COLORS.text,
         maxLines: 1,
         minScale: 0.75,
@@ -595,7 +597,7 @@ function header(title, now) {
       {
         type: 'text',
         text: '更新 ' + formatTime(now),
-        font: { size: 'caption1', weight: 'medium' },
+        font: { size: 'caption2', weight: 'medium' },
         textColor: COLORS.muted,
         maxLines: 1,
         minScale: 0.65,
@@ -688,7 +690,6 @@ function matchRows(matches, limit, showTime) {
 }
 
 function matchRow(match, showTime) {
-  const status = matchStatusLine(match);
   return {
     type: 'stack',
     direction: 'row',
@@ -698,40 +699,54 @@ function matchRow(match, showTime) {
       {
         type: 'text',
         text: formatTime(match.kickoff),
-        font: { size: 'caption2', weight: 'medium', family: 'Menlo' },
+        font: matchFont('medium', 'Menlo'),
         textColor: match.status === 'live' ? COLORS.live : COLORS.muted,
         maxLines: 1,
-        minScale: 0.6,
+        minScale: 0.72,
       },
       {
         type: 'text',
-        text: status,
-        font: { size: 'caption2', weight: 'bold' },
+        text: matchStatusLine(match),
+        font: matchFont('bold'),
         textColor: statusColor(match),
         maxLines: 1,
-        minScale: 0.55,
+        minScale: 0.72,
       },
       {
         type: 'text',
-        text: teamLine(match),
-        font: { size: 'caption1', weight: 'semibold' },
+        text: matchLine(match),
+        font: matchFont('semibold'),
         textColor: COLORS.text,
         flex: 1,
         maxLines: 1,
-        minScale: 0.55,
+        minScale: 0.72,
       },
     ],
   };
+}
+
+function matchFont(weight, family) {
+  const font = { size: 'caption2', weight };
+  if (family) font.family = family;
+  return font;
 }
 
 function teamLine(match) {
   return flagName(match.homeFlag, match.home) + ' vs ' + flagName(match.awayFlag, match.away);
 }
 
+function matchLine(match) {
+  const score = scoreText(match);
+  if (score && (match.status === 'finished' || match.status === 'live')) {
+    return homeDisplay(match) + ' ' + score + ' ' + awayDisplay(match);
+  }
+  return teamLine(match);
+}
+
 function lineText(match, withTime) {
   const prefix = withTime ? formatDay(match.kickoff) + ' ' + formatTime(match.kickoff) + ' ' : '';
   const status = matchStatusLine(match);
-  return prefix + (status ? status + ' ' : '') + teamLine(match);
+  return prefix + (status ? status + ' ' : '') + matchLine(match);
 }
 
 function statusText(match) {
@@ -750,11 +765,10 @@ function statusText(match) {
 }
 
 function matchStatusLine(match) {
-  const score = scoreText(match);
-  if (match.status === 'finished') return score ? '已结束 ' + score : '已结束';
+  if (match.status === 'finished') return '已结束';
   if (match.status === 'live') {
     const minute = statusText(match).replace('进行中', '').trim();
-    return '进行中' + (minute ? ' ' + minute : '') + (score ? ' ' + score : '');
+    return '进行中' + (minute ? ' ' + minute : '');
   }
   if (match.status === 'other') return '待定';
   return '未开赛';
@@ -907,6 +921,14 @@ function normalizeLookup(value) {
 
 function flagName(flag, name) {
   return (flag ? flag + ' ' : '') + name;
+}
+
+function homeDisplay(match) {
+  return flagName(match.homeFlag, match.home);
+}
+
+function awayDisplay(match) {
+  return match.away + (match.awayFlag ? match.awayFlag : '');
 }
 
 function flagEmoji(alpha2) {

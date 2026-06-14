@@ -8,17 +8,16 @@ Egern configuration snippets and JavaScript widgets.
 
 - Script: `scripts/WorldCup_Widget.js`
 - Config snippet: `configs/WorldCup_Widget.yaml`
-- Data source: football-data.org FIFA World Cup (`WC`)
+- Data source: ESPN FIFA World Cup (`fifa.world`)
 
 Required widget env:
 
 ```yaml
-DATA_SOURCE: "football-data"
-COMPETITION_CODE: "WC"
-API_KEY: "your football-data.org token"
+DATA_SOURCE: "espn"
+ESPN_LEAGUE: "fifa.world"
 ```
 
-The widget shows yesterday, today, and tomorrow in Beijing time. Finished matches show scores, live matches show `进行中`, and scheduled matches show kickoff time. Team names are displayed in Chinese with country flags when the team can be matched.
+The widget shows yesterday, today, and tomorrow in Beijing time. Finished matches show scores in the middle of the team names, live matches show `进行中`, and scheduled matches show kickoff time. Team names are displayed in Chinese with country flags when the team can be matched.
 
 ### QWeather
 
