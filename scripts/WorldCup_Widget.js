@@ -22,6 +22,13 @@ const FONT_SIZE = {
   match: 11,
 };
 
+const MATCH_GRID_WIDTH = {
+  time: 42,
+  status: 46,
+  home: 88,
+  score: 34,
+};
+
 const TEAM_DATA = {
   ALB: team('阿尔巴尼亚', 'AL', ['Albania']),
   ALG: team('阿尔及利亚', 'DZ', ['Algeria']),
@@ -579,7 +586,7 @@ function renderLarge(days, state, now) {
   const scheduleRows = [];
   days.forEach(function(day) {
     scheduleRows.push(dayHeader(day));
-    scheduleRows.push.apply(scheduleRows, matchRows(day.matches, 4, true));
+    scheduleRows.push.apply(scheduleRows, matchRows(day.matches, 4, true, 'grid'));
   });
 
   children.push.apply(children, interleaveSpacers(scheduleRows));
@@ -660,7 +667,7 @@ function dayColumn(day, limit) {
         textColor: COLORS.text,
         maxLines: 1,
       },
-    ].concat(matchRows(day.matches, limit, false)),
+    ].concat(matchRows(day.matches, limit, true)),
   };
 }
 
@@ -687,12 +694,12 @@ function dayHeader(day) {
   };
 }
 
-function matchRows(matches, limit, showTime) {
+function matchRows(matches, limit, showTime, layout) {
   const rows = [];
   const count = Math.min(matches.length, limit);
 
   for (let i = 0; i < count; i += 1) {
-    rows.push(matchRow(matches[i], showTime));
+    rows.push(matchRow(matches[i], showTime, layout));
   }
 
   if (!rows.length) {
@@ -727,40 +734,122 @@ function interleaveSpacers(rows) {
   return result;
 }
 
-function matchRow(match, showTime) {
+function matchRow(match, showTime, layout) {
+  if (layout === 'grid') return gridMatchRow(match, showTime);
+
+  const children = [];
+  if (showTime) {
+    children.push({
+      type: 'text',
+      text: formatTime(match.kickoff),
+      font: matchFont('medium', 'Menlo'),
+      textColor: match.status === 'live' ? COLORS.live : COLORS.muted,
+      maxLines: 1,
+      minScale: 0.72,
+    });
+  }
+
+  children.push({
+    type: 'text',
+    text: matchStatusLine(match),
+    font: matchFont('bold'),
+    textColor: statusColor(match),
+    maxLines: 1,
+    minScale: 0.72,
+  });
+
+  children.push({
+    type: 'text',
+    text: matchLine(match),
+    font: matchFont('semibold'),
+    textColor: COLORS.text,
+    flex: 1,
+    maxLines: 1,
+    minScale: 0.72,
+  });
+
   return {
     type: 'stack',
     direction: 'row',
     alignItems: 'center',
     gap: 4,
-    children: [
-      {
-        type: 'text',
-        text: formatTime(match.kickoff),
-        font: matchFont('medium', 'Menlo'),
-        textColor: match.status === 'live' ? COLORS.live : COLORS.muted,
-        maxLines: 1,
-        minScale: 0.72,
-      },
-      {
-        type: 'text',
-        text: matchStatusLine(match),
-        font: matchFont('bold'),
-        textColor: statusColor(match),
-        maxLines: 1,
-        minScale: 0.72,
-      },
-      {
-        type: 'text',
-        text: matchLine(match),
-        font: matchFont('semibold'),
-        textColor: COLORS.text,
-        flex: 1,
-        maxLines: 1,
-        minScale: 0.72,
-      },
-    ],
+    children,
   };
+}
+
+function gridMatchRow(match, showTime) {
+  const children = [];
+
+  if (showTime) {
+    children.push(rowCell(formatTime(match.kickoff), {
+      width: MATCH_GRID_WIDTH.time,
+      font: matchFont('medium', 'Menlo'),
+      color: match.status === 'live' ? COLORS.live : COLORS.muted,
+      align: 'left',
+    }));
+  }
+
+  children.push(rowCell(matchStatusLine(match), {
+    width: MATCH_GRID_WIDTH.status,
+    font: matchFont('bold'),
+    color: statusColor(match),
+    align: 'left',
+  }));
+
+  children.push(rowCell(homeDisplay(match), {
+    width: MATCH_GRID_WIDTH.home,
+    font: matchFont('semibold'),
+    color: COLORS.text,
+    align: 'right',
+  }));
+
+  children.push(rowCell(matchCenterText(match), {
+    width: MATCH_GRID_WIDTH.score,
+    font: matchFont('bold'),
+    color: match.status === 'live' ? COLORS.live : COLORS.text,
+    align: 'center',
+  }));
+
+  children.push(rowCell(awayDisplay(match), {
+    flex: 1,
+    font: matchFont('semibold'),
+    color: COLORS.text,
+    align: 'left',
+  }));
+
+  return {
+    type: 'stack',
+    direction: 'row',
+    alignItems: 'center',
+    gap: 3,
+    children,
+  };
+}
+
+function rowCell(text, options) {
+  const children = [];
+  const align = options.align || 'left';
+
+  if (align === 'right' || align === 'center') children.push({ type: 'spacer' });
+  children.push({
+    type: 'text',
+    text,
+    font: options.font,
+    textColor: options.color,
+    maxLines: 1,
+    minScale: 0.65,
+  });
+  if (align === 'left' || align === 'center') children.push({ type: 'spacer' });
+
+  const cell = {
+    type: 'stack',
+    direction: 'row',
+    alignItems: 'center',
+    children,
+  };
+  if (options.width) cell.width = options.width;
+  if (options.flex) cell.flex = options.flex;
+  return cell;
 }
 
 function matchFont(weight, family) {
@@ -779,6 +868,12 @@ function matchLine(match) {
     return homeDisplay(match) + ' ' + score + ' ' + awayDisplay(match);
   }
   return teamLine(match);
+}
+
+function matchCenterText(match) {
+  const score = scoreText(match);
+  if (score && (match.status === 'finished' || match.status === 'live')) return score;
+  return 'vs';
 }
 
 function lineText(match, withTime) {
