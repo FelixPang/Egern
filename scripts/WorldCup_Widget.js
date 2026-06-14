@@ -8,7 +8,9 @@ const COLORS = {
   muted: { light: '#68737D', dark: '#A7B0B8' },
   faint: { light: '#8A949E', dark: '#7F8A94' },
   accent: { light: '#0A7A5A', dark: '#35D399' },
+  trophy: { light: '#D4A017', dark: '#FFD60A' },
   live: { light: '#B45309', dark: '#FFD166' },
+  finished: { light: '#475569', dark: '#CBD5E1' },
   error: { light: '#D70015', dark: '#FF453A' },
 };
 
@@ -406,20 +408,31 @@ function includesAny(text, words) {
 
 function buildDays(matches, now) {
   const configs = [
-    { key: dayKey(addDays(now, -1)), title: '昨天', shortTitle: '昨' },
-    { key: dayKey(now), title: '今天', shortTitle: '今' },
-    { key: dayKey(addDays(now, 1)), title: '明天', shortTitle: '明' },
+    buildDayConfig(now, -1, '昨天', '昨'),
+    buildDayConfig(now, 0, '今天', '今'),
+    buildDayConfig(now, 1, '明天', '明'),
   ];
 
   return configs.map(function(day) {
     return {
       title: day.title,
+      dateLabel: day.dateLabel,
       shortTitle: day.shortTitle,
       matches: matches.filter(function(match) {
         return dayKey(match.kickoff) === day.key;
       }),
     };
   });
+}
+
+function buildDayConfig(now, offset, title, shortTitle) {
+  const date = addDays(now, offset);
+  return {
+    key: dayKey(date),
+    title,
+    dateLabel: formatDay(date),
+    shortTitle,
+  };
 }
 
 function renderInline(days) {
@@ -495,7 +508,7 @@ function renderRectangular(days) {
 function renderSmall(days, state, now) {
   const today = days[1];
   return shell(now, state, [
-    header('世界杯赛程'),
+    header('世界杯赛程', now),
     {
       type: 'stack',
       direction: 'column',
@@ -507,7 +520,7 @@ function renderSmall(days, state, now) {
 
 function renderMedium(days, state, now) {
   return shell(now, state, [
-    header('世界杯赛程'),
+    header('世界杯赛程', now),
     {
       type: 'stack',
       direction: 'row',
@@ -521,7 +534,7 @@ function renderMedium(days, state, now) {
 
 function renderLarge(days, state, now) {
   const children = [
-    header('世界杯赛程'),
+    header('世界杯赛程', now),
   ];
 
   days.forEach(function(day) {
@@ -545,15 +558,6 @@ function shell(now, state, children, padding) {
     });
   }
 
-  body.push({
-    type: 'date',
-    date: now.toISOString(),
-    format: 'relative',
-    font: { size: 'caption2', weight: 'regular' },
-    textColor: COLORS.faint,
-    maxLines: 1,
-  });
-
   return {
     type: 'widget',
     refreshAfter: nextRefresh(now),
@@ -564,7 +568,7 @@ function shell(now, state, children, padding) {
   };
 }
 
-function header(title) {
+function header(title, now) {
   return {
     type: 'stack',
     direction: 'row',
@@ -574,7 +578,7 @@ function header(title) {
       {
         type: 'image',
         src: 'sf-symbol:trophy.fill',
-        color: COLORS.accent,
+        color: COLORS.trophy,
         width: 17,
         height: 17,
       },
@@ -585,6 +589,15 @@ function header(title) {
         textColor: COLORS.text,
         maxLines: 1,
         minScale: 0.75,
+      },
+      { type: 'spacer' },
+      {
+        type: 'text',
+        text: '更新 ' + formatTime(now),
+        font: { size: 'caption1', weight: 'medium' },
+        textColor: COLORS.muted,
+        maxLines: 1,
+        minScale: 0.65,
       },
     ],
   };
@@ -602,7 +615,7 @@ function dayColumn(day, limit) {
     children: [
       {
         type: 'text',
-        text: day.title,
+        text: day.title + ' ' + day.dateLabel,
         font: { size: 'caption1', weight: 'bold' },
         textColor: COLORS.text,
         maxLines: 1,
@@ -627,7 +640,7 @@ function daySection(day, limit) {
         children: [
           {
             type: 'text',
-            text: day.title,
+            text: day.title + ' ' + day.dateLabel,
             font: { size: 'subheadline', weight: 'bold' },
             textColor: COLORS.text,
           },
@@ -674,6 +687,7 @@ function matchRows(matches, limit, showTime) {
 }
 
 function matchRow(match, showTime) {
+  const status = matchStatusLine(match);
   return {
     type: 'stack',
     direction: 'row',
@@ -690,19 +704,18 @@ function matchRow(match, showTime) {
       },
       {
         type: 'text',
-        text: teamLine(match),
-        font: { size: 'caption1', weight: 'semibold' },
-        textColor: COLORS.text,
-        flex: 1,
+        text: status,
+        font: { size: 'caption2', weight: 'bold' },
+        textColor: statusColor(match),
         maxLines: 1,
         minScale: 0.55,
       },
       {
         type: 'text',
-        text: statusBadge(match),
-        font: { size: 'caption2', weight: 'bold' },
-        textColor: match.status === 'live' ? COLORS.live : COLORS.muted,
-        textAlign: 'right',
+        text: teamLine(match),
+        font: { size: 'caption1', weight: 'semibold' },
+        textColor: COLORS.text,
+        flex: 1,
         maxLines: 1,
         minScale: 0.55,
       },
@@ -716,8 +729,8 @@ function teamLine(match) {
 
 function lineText(match, withTime) {
   const prefix = withTime ? formatDay(match.kickoff) + ' ' + formatTime(match.kickoff) + ' ' : '';
-  const status = statusBadge(match);
-  return prefix + teamLine(match) + (status ? ' ' + status : '');
+  const status = matchStatusLine(match);
+  return prefix + (status ? status + ' ' : '') + teamLine(match);
 }
 
 function statusText(match) {
@@ -732,12 +745,29 @@ function statusText(match) {
     return '完场';
   }
   if (match.status === 'other') return '待定';
-  return formatTime(match.kickoff);
+  return '未开赛';
 }
 
-function statusBadge(match) {
-  if (match.status === 'scheduled') return '';
-  return statusText(match);
+function matchStatusLine(match) {
+  const score = scoreText(match);
+  if (match.status === 'finished') return score ? '已结束 ' + score : '已结束';
+  if (match.status === 'live') {
+    const minute = statusText(match).replace('进行中', '').trim();
+    return '进行中' + (minute ? ' ' + minute : '') + (score ? ' ' + score : '');
+  }
+  if (match.status === 'other') return '待定';
+  return '未开赛';
+}
+
+function statusColor(match) {
+  if (match.status === 'live') return COLORS.live;
+  if (match.status === 'finished') return COLORS.finished;
+  return COLORS.muted;
+}
+
+function scoreText(match) {
+  if (match.homeScore == null || match.awayScore == null) return '';
+  return match.homeScore + '-' + match.awayScore;
 }
 
 function compactStatus(match) {
@@ -745,7 +775,7 @@ function compactStatus(match) {
     return match.homeScore + '-' + match.awayScore;
   }
   if (match.status === 'live') return '进行中';
-  return formatTime(match.kickoff);
+  return '未开赛';
 }
 
 function firstLive(days) {
