@@ -10,14 +10,13 @@ Egern configuration snippets and JavaScript widgets.
 - Config snippet: `configs/WorldCup_Widget.yaml`
 - Data source: ESPN FIFA World Cup (`fifa.world`)
 
-Required widget env:
+Default widget env:
 
 ```yaml
-DATA_SOURCE: "espn"
-ESPN_LEAGUE: "fifa.world"
+# No env is required when using the default ESPN source.
 ```
 
-The widget shows yesterday, today, and tomorrow in Beijing time. Finished matches show scores in the middle of the team names, live matches show `进行中`, and scheduled matches show kickoff time. Team names are displayed in Chinese with country flags when the team can be matched.
+The widget shows yesterday, today, and tomorrow in Beijing time. The default ESPN source does not require an API key or environment variables. Finished matches show scores, live matches show `进行中`, and scheduled matches show kickoff time. Team names are displayed in Chinese with country flags when the team can be matched.
 
 ### QWeather
 

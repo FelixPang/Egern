@@ -18,15 +18,13 @@ const FONT_SIZE = {
   header: 14,
   headerMeta: 11,
   dayTitle: 14,
-  dayCount: 12,
   match: 11,
 };
 
 const MATCH_GRID_WIDTH = {
+  date: 48,
   time: 42,
-  status: 46,
-  home: 88,
-  score: 34,
+  status: 42,
 };
 
 const TEAM_DATA = {
@@ -162,7 +160,7 @@ async function loadMatches(ctx, env, now) {
 
   if (env.MATCHES_JSON) {
     raw = JSON.parse(env.MATCHES_JSON);
-  } else if (env.API_URL || isEspnSource(env) || isFootballDataSource(env)) {
+  } else {
     const resp = await ctx.http.get(buildApiUrl(env, now), {
       timeout: Number(env.TIMEOUT || 10000),
       headers: buildHeaders(env),
@@ -173,11 +171,6 @@ async function loadMatches(ctx, env, now) {
     }
 
     raw = await resp.json();
-  } else {
-    return {
-      matches: [],
-      error: '请在 env 里配置 DATA_SOURCE、API_URL 或 MATCHES_JSON',
-    };
   }
 
   return {
@@ -187,12 +180,16 @@ async function loadMatches(ctx, env, now) {
 }
 
 function isEspnSource(env) {
-  return String(env.DATA_SOURCE || env.PROVIDER || '').toLowerCase() === 'espn';
+  return dataSource(env) === 'espn';
 }
 
 function isFootballDataSource(env) {
-  const source = String(env.DATA_SOURCE || env.PROVIDER || '').toLowerCase();
+  const source = dataSource(env);
   return source === 'football-data' || source === 'football-data.org' || source === 'footballdata';
+}
+
+function dataSource(env) {
+  return String(env.DATA_SOURCE || env.PROVIDER || (env.API_URL ? '' : 'espn')).toLowerCase();
 }
 
 function buildApiUrl(env, now) {
@@ -583,13 +580,11 @@ function renderLarge(days, state, now) {
     { type: 'spacer', length: 8 },
   ];
 
-  const scheduleRows = [];
-  days.forEach(function(day) {
-    scheduleRows.push(dayHeader(day));
-    scheduleRows.push.apply(scheduleRows, matchRows(day.matches, 4, true, 'grid'));
+  const dayCards = days.map(function(day) {
+    return dayCard(day, 4);
   });
 
-  children.push.apply(children, interleaveSpacers(scheduleRows));
+  children.push.apply(children, interleaveSpacers(dayCards, 7));
 
   return shell(now, state, children, 14, 0);
 }
@@ -671,35 +666,70 @@ function dayColumn(day, limit) {
   };
 }
 
-function dayHeader(day) {
+function dayCard(day, limit) {
   return {
     type: 'stack',
     direction: 'row',
     alignItems: 'center',
+    gap: 9,
+    padding: [8, 10, 8, 10],
+    backgroundColor: COLORS.card,
+    borderRadius: 8,
     children: [
+      dateBadge(day),
       {
-        type: 'text',
-        text: day.title + ' ' + day.dateLabel,
-        font: { size: FONT_SIZE.dayTitle, weight: 'bold' },
-        textColor: COLORS.text,
-      },
-      { type: 'spacer' },
-      {
-        type: 'text',
-        text: day.matches.length + ' 场',
-        font: { size: FONT_SIZE.dayCount, weight: 'medium' },
-        textColor: COLORS.muted,
+        type: 'stack',
+        direction: 'column',
+        gap: 4,
+        flex: 1,
+        children: cardMatchRows(day.matches, limit),
       },
     ],
   };
 }
 
-function matchRows(matches, limit, showTime, layout) {
+function dateBadge(day) {
+  return {
+    type: 'stack',
+    direction: 'column',
+    alignItems: 'center',
+    width: MATCH_GRID_WIDTH.date,
+    gap: 1,
+    children: [
+      {
+        type: 'text',
+        text: day.title,
+        font: { size: FONT_SIZE.dayTitle, weight: 'bold' },
+        textColor: COLORS.text,
+        maxLines: 1,
+        minScale: 0.75,
+      },
+      {
+        type: 'text',
+        text: day.dateLabel,
+        font: { size: FONT_SIZE.headerMeta, weight: 'medium' },
+        textColor: COLORS.muted,
+        maxLines: 1,
+        minScale: 0.75,
+      },
+      {
+        type: 'text',
+        text: day.matches.length + ' 场',
+        font: { size: 9, weight: 'medium' },
+        textColor: COLORS.faint,
+        maxLines: 1,
+        minScale: 0.75,
+      },
+    ],
+  };
+}
+
+function cardMatchRows(matches, limit) {
   const rows = [];
   const count = Math.min(matches.length, limit);
 
   for (let i = 0; i < count; i += 1) {
-    rows.push(matchRow(matches[i], showTime, layout));
+    rows.push(cardMatchRow(matches[i]));
   }
 
   if (!rows.length) {
@@ -723,20 +753,79 @@ function matchRows(matches, limit, showTime, layout) {
   return rows;
 }
 
-function interleaveSpacers(rows) {
+function matchRows(matches, limit, showTime) {
+  const rows = [];
+  const count = Math.min(matches.length, limit);
+
+  for (let i = 0; i < count; i += 1) {
+    rows.push(matchRow(matches[i], showTime));
+  }
+
+  if (!rows.length) {
+    rows.push({
+      type: 'text',
+      text: '暂无比赛',
+      font: { size: FONT_SIZE.match, weight: 'regular' },
+      textColor: COLORS.faint,
+      maxLines: 1,
+    });
+  } else if (matches.length > limit) {
+    rows.push({
+      type: 'text',
+      text: '另有 ' + (matches.length - limit) + ' 场',
+      font: { size: FONT_SIZE.match, weight: 'medium' },
+      textColor: COLORS.faint,
+      maxLines: 1,
+    });
+  }
+
+  return rows;
+}
+
+function interleaveSpacers(rows, length) {
   const result = [];
 
   for (let i = 0; i < rows.length; i += 1) {
-    if (i > 0) result.push({ type: 'spacer' });
+    if (i > 0) result.push(length == null ? { type: 'spacer' } : { type: 'spacer', length });
     result.push(rows[i]);
   }
 
   return result;
 }
 
-function matchRow(match, showTime, layout) {
-  if (layout === 'grid') return gridMatchRow(match, showTime);
+function cardMatchRow(match) {
+  return {
+    type: 'stack',
+    direction: 'row',
+    alignItems: 'center',
+    gap: 4,
+    children: [
+      rowCell(formatTime(match.kickoff), {
+        width: MATCH_GRID_WIDTH.time,
+        font: matchFont('medium', 'Menlo'),
+        color: match.status === 'live' ? COLORS.live : COLORS.muted,
+        align: 'left',
+      }),
+      rowCell(matchStatusLine(match), {
+        width: MATCH_GRID_WIDTH.status,
+        font: matchFont('bold'),
+        color: statusColor(match),
+        align: 'left',
+      }),
+      {
+        type: 'text',
+        text: matchLine(match),
+        font: matchFont('semibold'),
+        textColor: COLORS.text,
+        flex: 1,
+        maxLines: 1,
+        minScale: 0.62,
+      },
+    ],
+  };
+}
 
+function matchRow(match, showTime) {
   const children = [];
   if (showTime) {
     children.push({
@@ -777,55 +866,6 @@ function matchRow(match, showTime, layout) {
   };
 }
 
-function gridMatchRow(match, showTime) {
-  const children = [];
-
-  if (showTime) {
-    children.push(rowCell(formatTime(match.kickoff), {
-      width: MATCH_GRID_WIDTH.time,
-      font: matchFont('medium', 'Menlo'),
-      color: match.status === 'live' ? COLORS.live : COLORS.muted,
-      align: 'left',
-    }));
-  }
-
-  children.push(rowCell(matchStatusLine(match), {
-    width: MATCH_GRID_WIDTH.status,
-    font: matchFont('bold'),
-    color: statusColor(match),
-    align: 'left',
-  }));
-
-  children.push(rowCell(homeDisplay(match), {
-    width: MATCH_GRID_WIDTH.home,
-    font: matchFont('semibold'),
-    color: COLORS.text,
-    align: 'right',
-  }));
-
-  children.push(rowCell(matchCenterText(match), {
-    width: MATCH_GRID_WIDTH.score,
-    font: matchFont('bold'),
-    color: match.status === 'live' ? COLORS.live : COLORS.text,
-    align: 'center',
-  }));
-
-  children.push(rowCell(awayDisplay(match), {
-    flex: 1,
-    font: matchFont('semibold'),
-    color: COLORS.text,
-    align: 'left',
-  }));
-
-  return {
-    type: 'stack',
-    direction: 'row',
-    alignItems: 'center',
-    gap: 3,
-    children,
-  };
-}
-
 function rowCell(text, options) {
   const children = [];
   const align = options.align || 'left';
@@ -859,7 +899,7 @@ function matchFont(weight, family) {
 }
 
 function teamLine(match) {
-  return flagName(match.homeFlag, match.home) + ' vs ' + flagName(match.awayFlag, match.away);
+  return homeDisplay(match) + ' vs ' + awayDisplay(match);
 }
 
 function matchLine(match) {
@@ -868,12 +908,6 @@ function matchLine(match) {
     return homeDisplay(match) + ' ' + score + ' ' + awayDisplay(match);
   }
   return teamLine(match);
-}
-
-function matchCenterText(match) {
-  const score = scoreText(match);
-  if (score && (match.status === 'finished' || match.status === 'live')) return score;
-  return 'vs';
 }
 
 function lineText(match, withTime) {
@@ -1052,16 +1086,12 @@ function normalizeLookup(value) {
     .trim();
 }
 
-function flagName(flag, name) {
-  return (flag ? flag + ' ' : '') + name;
-}
-
 function homeDisplay(match) {
-  return flagName(match.homeFlag, match.home);
+  return match.home + (match.homeFlag ? ' ' + match.homeFlag : '');
 }
 
 function awayDisplay(match) {
-  return match.away + (match.awayFlag ? match.awayFlag : '');
+  return (match.awayFlag ? match.awayFlag + ' ' : '') + match.away;
 }
 
 function flagEmoji(alpha2) {
