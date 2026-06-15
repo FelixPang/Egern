@@ -23,8 +23,8 @@ const FONT_SIZE = {
 
 const MATCH_GRID_WIDTH = {
   date: 38,
-  time: 40,
-  status: 40,
+  time: 42,
+  status: 52,
   home: 76,
   score: 28,
   away: 76,
