@@ -404,6 +404,7 @@ function mediumWidget(data, ctx) {
         type: 'stack',
         direction: 'row',
         alignItems: 'center',
+        padding: [2, 0, 0, 0],
         children: [
           text(`${tls.value} · 门户 ${portal.value}`, 9, secondaryColor, 'medium', { flex: 1 }),
           text(`DNS ${data.dnsCount}`, 9, C.dim, 'semibold')
