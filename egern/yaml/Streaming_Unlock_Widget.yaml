@@ -6,6 +6,7 @@ scriptings:
   - generic:
       name: "streaming-unlock-widget"
       script_url: "https://raw.githubusercontent.com/vfelix7/rule_module_script/refs/heads/master/egern/scripts/Streaming_Unlock_Widget.js"
+      update_interval: 300
       timeout: 30
 
 widgets:
