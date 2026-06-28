@@ -345,11 +345,11 @@ function mediumWidget(data, ctx) {
   const showIp = boolEnv(ctx, 'SHOW_IP', false);
   const refreshMinutes = numberEnv(ctx, 'REFRESH_MINUTES', 10, 5, 60);
   const ip = showIp ? data.publicIp || '--' : maskIp(data.publicIp);
+  const tls = data.checks[1];
   const portal = data.checks[2];
-  const dnsLeak = data.checks[4];
-  const secondaryColor = [portal, dnsLeak].some(item => item.state === 'fail')
+  const secondaryColor = [tls, portal].some(item => item.state === 'fail')
     ? C.fail
-    : [portal, dnsLeak].some(item => item.state === 'warn')
+    : [tls, portal].some(item => item.state === 'warn')
       ? C.warn
       : C.dim;
   return {
@@ -396,7 +396,7 @@ function mediumWidget(data, ctx) {
         gap: 12,
         children: [
           checkCell(data.checks[0]),
-          checkCell(data.checks[1]),
+          checkCell(data.checks[4]),
           checkCell(data.checks[3])
         ]
       },
@@ -405,7 +405,7 @@ function mediumWidget(data, ctx) {
         direction: 'row',
         alignItems: 'center',
         children: [
-          text(`门户 ${portal.value} · DNS ${dnsLeak.value}`, 9, secondaryColor, 'medium', { flex: 1 }),
+          text(`${tls.value} · 门户 ${portal.value}`, 9, secondaryColor, 'medium', { flex: 1 }),
           text(`解析器 ${data.dnsCount}`, 9, C.dim, 'semibold')
         ]
       }
@@ -430,7 +430,7 @@ function smallWidget(data, ctx) {
       text('项检查通过', 10, C.dim, 'medium'),
       { type: 'spacer' },
       checkCell(data.checks[0]),
-      checkCell(data.checks[1])
+      checkCell(data.checks[4])
     ]
   };
 }
@@ -468,6 +468,13 @@ function detailRow(item) {
 function largeWidget(data, ctx) {
   const showIp = boolEnv(ctx, 'SHOW_IP', false);
   const refreshMinutes = numberEnv(ctx, 'REFRESH_MINUTES', 10, 5, 60);
+  const priorityChecks = [
+    data.checks[0],
+    data.checks[4],
+    data.checks[3],
+    data.checks[1],
+    data.checks[2]
+  ];
   return {
     type: 'widget',
     backgroundColor: C.bg,
@@ -500,7 +507,7 @@ function largeWidget(data, ctx) {
         ]
       },
       text('SECURITY DETAIL', 9, C.dim, 'bold'),
-      ...data.checks.map(detailRow),
+      ...priorityChecks.map(detailRow),
       { type: 'stack', height: 1, backgroundColor: C.hairline, children: [] },
       {
         type: 'stack',
