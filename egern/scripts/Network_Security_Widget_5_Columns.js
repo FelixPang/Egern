@@ -361,7 +361,8 @@ function primaryCheckItem(item) {
     direction: 'row',
     alignItems: 'center',
     gap: 7,
-    flex: 1,
+    width: 106,
+    height: 24,
     children: [
       {
         type: 'stack',
@@ -377,8 +378,8 @@ function primaryCheckItem(item) {
       {
         type: 'stack',
         direction: 'column',
-        gap: 2,
-        flex: 1,
+        gap: 1,
+        width: 75,
         children: [
           text(item.label, 9, C.dim, 'semibold', { minScale: 0.72 }),
           text(item.value, 11, valueColor, 'semibold', { minScale: 0.68 })
@@ -395,6 +396,18 @@ function verticalDivider(height) {
     height,
     backgroundColor: C.hairline,
     children: []
+  };
+}
+
+function auxiliaryIcon(symbol) {
+  return {
+    type: 'stack',
+    direction: 'row',
+    alignItems: 'center',
+    width: 14,
+    height: 14,
+    padding: 1,
+    children: [icon(symbol, C.dim, 12)]
   };
 }
 
@@ -426,8 +439,9 @@ function auxiliaryItem(symbol, label, value, state = 'pass', width = 0, customIc
     alignItems: 'center',
     gap: 5,
     width,
+    height: 18,
     children: [
-      customIcon || icon(symbol, C.dim, 12),
+      customIcon || auxiliaryIcon(symbol),
       text(label, 9, C.dim, 'medium', { minScale: 0.72 }),
       text(value, 10, valueColor, 'semibold', { minScale: 0.68 })
     ]
@@ -484,7 +498,8 @@ function mediumWidget(data, ctx) {
         type: 'stack',
         direction: 'row',
         alignItems: 'center',
-        gap: 8,
+        gap: 0,
+        width: 320,
         children: [
           primaryCheckItem(primaryChecks[0]),
           verticalDivider(24),
