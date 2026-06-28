@@ -91,13 +91,11 @@ async function fetchUsage(ctx, url, token, accountId) {
 
   const headers = {
     Accept: 'application/json',
-    Authorization: `Bearer ${token}`,
-    'Cache-Control': 'no-cache',
-    Pragma: 'no-cache'
+    Authorization: `Bearer ${token}`
   };
   if (accountId) headers['ChatGPT-Account-Id'] = accountId;
 
-  const response = await ctx.http.get(appendCacheBuster(url), {
+  const response = await ctx.http.get(url, {
     headers,
     timeout: 10000,
     credentials: 'omit'
@@ -114,11 +112,6 @@ async function fetchUsage(ctx, url, token, accountId) {
   if (typeof response?.body === 'string') return JSON.parse(response.body);
   if (typeof response === 'string') return JSON.parse(response);
   throw new Error('接口响应格式异常');
-}
-
-function appendCacheBuster(url) {
-  const separator = String(url).includes('?') ? '&' : '?';
-  return `${url}${separator}_ts=${Date.now()}`;
 }
 
 function parseUsage(payload) {
