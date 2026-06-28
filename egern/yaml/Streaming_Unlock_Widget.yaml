@@ -1,0 +1,16 @@
+name: "媒体与 AI 解锁"
+description: "按 Egern 分流规则检测 YouTube、Netflix、Disney+、ChatGPT、Claude 和 Gemini"
+author: "vfelix7"
+
+scriptings:
+  - generic:
+      name: "streaming-unlock-widget"
+      script_url: "https://raw.githubusercontent.com/vfelix7/rule_module_script/refs/heads/master/egern/scripts/Streaming_Unlock_Widget.js"
+      timeout: 30
+
+widgets:
+  - name: "媒体与 AI 解锁"
+    script_name: "streaming-unlock-widget"
+
+# 无需配置环境变量。
+# 脚本不会强制指定 policy，各检测请求分别遵循当前 Egern 分流规则。

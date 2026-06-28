@@ -29,6 +29,21 @@ https://raw.githubusercontent.com/vfelix7/rule_module_script/refs/heads/master/s
 
 - Script: `egern/scripts/QWeather_Widget.js`
 
+### Streaming and AI Unlock
+
+- Script: `egern/scripts/Streaming_Unlock_Widget.js`
+- Config snippet: `egern/yaml/Streaming_Unlock_Widget.yaml`
+
+Module URL:
+
+```text
+https://raw.githubusercontent.com/vfelix7/rule_module_script/refs/heads/master/egern/yaml/Streaming_Unlock_Widget.yaml
+```
+
+No environment variables are required. Each service request omits `policy` and
+`policyDescriptor`, so Egern applies the configured routing rules separately
+for YouTube, Netflix, Disney+, ChatGPT, Claude, and Gemini.
+
 ### Codex Usage
 
 - Script: `egern/scripts/Codex_Usage_Widget.js`
